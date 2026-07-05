@@ -1,0 +1,79 @@
+<?php
+
+namespace Modules\Access\Models;
+
+use Database\Factories\UserFactory;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Notifications\Notifiable;
+// use Modules\Access\Database\Factories\UserFactory;
+
+class User extends Authenticatable
+{
+    use HasFactory, Notifiable;
+
+    /**
+     * The attributes that are mass assignable.
+     */
+    protected $fillable = ['name', 'email', 'password', 'parent_id', 'role_id'];
+    protected $guarded = ['id'];
+    protected $hidden = ['password', 'remember_token'];
+
+    protected function casts(): array { 
+        return [
+            'email_verified_at' => 'datetime',
+            'password' => 'hashed',
+        ];
+    }
+
+    protected static function newFactory(): UserFactory
+    {
+        return Database\Factories\UserFactory::new();
+    }
+
+    public function parent(): BelongsTo { 
+        return $this->belongsTo(User::class, 'parent_id');
+    }
+
+    public function children(): HasMany { 
+        return $this->hasMany(User::class, 'parent_id');
+    }
+
+    // public function getDescendantIds(): array {
+        
+    //     $descendantIds = [];
+    //     $currentLevelIds = $this->children()->pluck('id')->all();
+
+    //     while( ! empty($currentLevelIds) ) { 
+    //         $descendantIds = array_merge($descendantIds, $currentLevelIds); 
+    //         $currentLevelIds = static::query()->whereIn('parent_id', $currentLevelIds)->pluck('id')->all();
+    //     }
+
+    //     return array_values(array_unique($descendantIds));
+    // }
+
+    public function getDescendantIds(): array { 
+        $descendantIds = [];
+        $currentLevelIds = $this->children()->pluck('id')->all();
+
+        while( ! empty($currentLevelIds) ) { 
+            $descendantIds = array_merge($descendantIds ,$currentLevelIds);
+            $currentLevelIds = static::query()->whereIn('parent_id', $currentLevelIds)->pluck('id')->all();
+        }
+
+        return array_values(array_unique($descendantIds));
+    }
+
+    public function role(): BelongsTo { 
+        return $this->belongsTo(Role::class);
+    }
+
+    public function hasPermission(string $permissionSlug): bool { 
+        if(! $this->role) { 
+            return false;
+        }
+        $this->role->hasPermission($permissionSlug);
+    }
+}

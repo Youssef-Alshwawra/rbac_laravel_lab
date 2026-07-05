@@ -3,7 +3,8 @@
 namespace Modules\Access\Providers;
 
 use Nwidart\Modules\Support\ModuleServiceProvider;
-use Illuminate\Console\Scheduling\Schedule;
+use Illuminate\Support\Facades\Gate;
+use Modules\Access\Http\Middleware\CheckPermission;
 
 class AccessServiceProvider extends ModuleServiceProvider
 {
@@ -33,6 +34,16 @@ class AccessServiceProvider extends ModuleServiceProvider
         EventServiceProvider::class,
         RouteServiceProvider::class,
     ];
+
+    public function boot(): void { 
+        parent::boot();
+        
+        $this->app['router']->aliasMiddleware('permission', CheckPermission::class);
+
+        Gate::before(function ($user, string $ability) {
+            return $user->hasPermission($ability) ? true : null;
+        });
+    }
 
     /**
      * Define module schedules.

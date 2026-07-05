@@ -71,9 +71,9 @@ class User extends Authenticatable
     }
 
     public function hasPermission(string $permissionSlug): bool { 
-        if(! $this->role) { 
+        if(! $this->role) {
             return false;
         }
-        $this->role->hasPermission($permissionSlug);
+        return $this->role->hasPermission($permissionSlug);
     }
 }

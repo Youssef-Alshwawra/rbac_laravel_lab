@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Notifications\Notifiable;
+use Modules\Agents\Models\Agent;
+
 // use Modules\Access\Database\Factories\UserFactory;
 
 class User extends Authenticatable
@@ -17,7 +19,7 @@ class User extends Authenticatable
     /**
      * The attributes that are mass assignable.
      */
-    protected $fillable = ['name', 'email', 'password', 'parent_id', 'role_id'];
+    protected $fillable = ['name', 'email', 'password', 'parent_id', 'role_id', 'agent_id'];
     protected $guarded = ['id'];
     protected $hidden = ['password', 'remember_token'];
 
@@ -75,5 +77,53 @@ class User extends Authenticatable
             return false;
         }
         return $this->role->hasPermission($permissionSlug);
+    }
+
+    public function agent(): BelongsTo { 
+        return $this->belongsTo(Agent::class);
+    }
+
+    // public function isRootBookingUser(): bool { 
+    //     $agent = $this->agent_id;
+        
+    //     if($agent && $agent !== null) { 
+    //         return false;
+    //     }
+
+    //     return true;
+    // }
+
+    public function isRootBookingUser(): bool { 
+        // return is_null($this->agent_id);
+        // or this:
+        return $this->agent_id === null;
+    }
+
+    public function isFirstLevelAgentUser(): bool {
+        
+        if($this->agent_id === null || is_null($this->agent_id)) return false;
+
+        $agent = Agent::query()->where('id', $this->agent_id)->first();
+        
+        if($agent === null) return false;
+
+        if($agent->parent_agent_id === null || is_null($agent->agent_parent_id)) return true;
+        
+        return false;
+    }
+
+    public function isSecondLevelAgentUser(): bool { 
+        // $agent = Agent::query()->where('id', $this->agent_id)->get();
+        // if($agent->parent_agent_id === null || is_null($agent->parent_agent_id)) return false;
+        // return true;
+        if($this->agent_id === null) return false;
+
+        $agent = Agent::query()->whereKey($this->agent_id)->first();
+
+        if($agent === null) return false;
+
+        if($agent->parent_agent_id !== null) return true;
+
+        return false;
     }
 }

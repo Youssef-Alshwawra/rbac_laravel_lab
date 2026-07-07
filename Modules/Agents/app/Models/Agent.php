@@ -54,13 +54,30 @@ class Agent extends Model
 
         while ($parent_id !== null && $guard < 256) { 
             $guard++;
-            $ids = $parent_id;
+            $ids[] = $parent_id;
             // $parent_id = Agent::query()->whereKey($parent_id)->value('parent_agent_id');
             $parent_id = static::query()->where('id', $parent_id)->pluck('id')->get();
         }
 
         return $ids;
     }
+
+    // public function youesfGetAncetorIds(): array { 
+    //     $parent_id = $this->parent_agent_id;
+    //     $guard = 0;
+    //     $ids = [];
+         
+    //     array_push($ids, $parent_id);
+    //     while(!is_null($parent_id) || $guard < 256) {
+    //         $guard++; 
+    //         // $parent_id = static::query()->where('id', $parent_id)->pluck('id')->first();
+    //         // $parent_id = Agent::query()->whereKey($parent_id)->value('parent_agent_id');
+    //         $parent_id = self::query()->where('id', $parent_id)->value('parent_agent_id');
+    //         array_push($ids, $parent_id);
+    //     }
+
+    //     return array_values(array_unique($ids));
+    // }
 
     public function getSelfAndDescendantIds(): array { 
         // $self_id = $this->id;
@@ -73,8 +90,15 @@ class Agent extends Model
         if($parent_id === null) return true;
         if($parent_id !== $this->id) return false;
         if(!static::query()->whereKey($parent_id)->exists()) return false;
-        return ! in_array($paretn_id, $this->getDescendantIds(), true);
+        return ! in_array($$parent_id, $this->getDescendantIds(), true);
     }
+
+    // public function yousefIsAcceptableParentId(?int $parent_id): bool { 
+    //     if($parent_id === null) return true;
+    //     if($parent_id !== $this->id) return false;
+    //     if(!static::query()->where('id', $parent_id)->exists()) return false;
+    //     return ! in_array($parent_id, $this->getDescendantIds(), true);
+    // }
     // protected static function newFactory(): AgentFactory
     // {
     //     // return AgentFactory::new();

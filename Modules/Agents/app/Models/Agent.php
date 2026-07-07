@@ -99,6 +99,7 @@ class Agent extends Model
     //     if(!static::query()->where('id', $parent_id)->exists()) return false;
     //     return ! in_array($parent_id, $this->getDescendantIds(), true);
     // }
+    
     // protected static function newFactory(): AgentFactory
     // {
     //     // return AgentFactory::new();

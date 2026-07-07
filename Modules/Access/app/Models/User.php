@@ -99,6 +99,11 @@ class User extends Authenticatable
         return $this->agent_id === null;
     }
 
+    // public function yousefIsRootBookingUser(): bool { 
+    //     if(is_null($this->agent)) return true;
+    //     return false;
+    // }
+
     public function isFirstLevelAgentUser(): bool {
         
         if($this->agent_id === null || is_null($this->agent_id)) return false;

@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('agents', function (Blueprint $table) {
             // $table->id();
-            $table->bigInteger('id');
+            $table->bigIncrements('id');
             $table->unsignedBigInteger('parent_agent_id')->nullable();
             
             $table->string('name', 255);
@@ -25,7 +25,7 @@ return new class extends Migration
             $table->boolean('is_active')->default(true);
             $table->timestamps();
 
-            $table->foreign('parent_agent_id')->on('agent')->references('id')->cascadeOnDelete();
+            $table->foreign('parent_agent_id')->on('agents')->references('id')->cascadeOnDelete();
         });
     }
 

@@ -6,9 +6,23 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
 // use Modules\Agents\Database\Factories\AgentFactory;
 
+/**
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, Agent> $children
+ * @property-read int|null $children_count
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \Modules\Agents\Models\CreditTransaction> $creditTransaction
+ * @property-read int|null $credit_transaction_count
+ * @property-read Agent|null $parent
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Agent newModelQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Agent newQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Agent query()
+ * @mixin \Eloquent
+ */
 class Agent extends Model
 {
     use HasFactory;
@@ -91,6 +105,115 @@ class Agent extends Model
         if($parent_id !== $this->id) return false;
         if(!static::query()->whereKey($parent_id)->exists()) return false;
         return ! in_array($$parent_id, $this->getDescendantIds(), true);
+    }
+
+    public function creditTransaction(): HasMany {
+        return $this->hasMany(CreditTransaction::class);
+    }
+
+    public function hasSufficientCredit(float $amount = 0): bool { 
+        // $credit_limit = $this->credit_limit;
+        // if($credit_limit < $amount) return false;
+        // return true;
+
+        return $this->credit_limit < $amount ? false : true;
+    }
+
+    public function deductCredit(float $amount = 0): bool { 
+        // if(!hasSufficientCredit($amount)) return false;
+        try { 
+            return DB::transaction(function() use ($amount) { 
+                // this is the same of but slower cause of __callstatic() function take sometime to create eloquent builder and pass where function to it 
+                // $agent = static::where('id', $this->id)->lockForUpdate()->first();
+                $agent = static::query()->where('id', $this->id)->lockForUpdate()->first();
+                
+                $agent->credit_limit = $agent->credit_limit - $amount;
+                $agent->credit_used = $agent->credit_used + $amount;
+                
+                // $this->credit_limit = $this->credit_limit - $amount;
+                // $this->credit_used = $this->credit_used + $amount;
+
+                // save it in database
+                $agent->save();
+
+                // update the current object with new credits data
+                $this->fill($agent->toArray());
+
+                return true;
+            });
+        } catch(Throwable $e) { 
+            Log::error($e->getMessage());
+            return false;
+        }
+    }
+
+    public function addCredit(float $amount): bool { 
+        try { 
+            return DB::transaction(function() use ($amount) { 
+                $agent = static::query()->whereKey($this->id)->lockForUpdate()->first();
+                
+                // calculations : 
+                $agent->credit_limit = $agent->credit_limit + $amount;
+                $agent->credit_used = $agent->credit_used - $amount;
+
+                // check for validation for credit used must be 0 or positive number
+                if($agent->credit_used < 0) return false;
+
+                $agent->save();
+
+                $this->fill($agent->toArray());
+
+                // $this->credit_limit = $this->credit_limit + $amount;
+                // $this->credit_used = $this->credit_used - $amount;
+                
+                // if($this->credit_used < 0) return false;
+
+                // $this->save();
+
+                return true;
+            });
+        } catch (Throwable $e) { 
+            Log::error($e->getMessage());
+            return false;
+        }
+    }
+
+    public function applyCreditBalanceDelta(float $balanceDelta): void { 
+        // if the balance delta is positive then the caculation will be an add credit else its gonna be deduct credit
+        if($balanceDelta > 0) { 
+            try {
+                DB::transaction(function() use ($balanceDelta) {
+                    $agent = static::query()->whereKey($this->id)->lockForUpdate()->first();
+                    
+                    $agent->credit_limit = $agent->credit_limit - $balanceDelta;
+                    $agent->credit_used = $agent->credit_used + $balanceDelta;
+                    
+                    $agent->save();
+                    
+                    $this->fill($agent->toArray());
+                });
+            } catch(Throwable $e) { 
+                Log::error($e->getMessage());
+            }
+        } 
+        else { 
+            try {
+                DB::transaction(function() use ($balanceDelta) {
+                    $agent = static::query()->whereKey($this->id)->lockForUpdate()->first();
+                    
+                    $absBalanceDelta = abs($balanceDelta);
+
+                    $agent->credit_limit = $agent->credit_limit + $absBalanceDelta;
+                    $agent->credit_used = $agent->credit_used - $absBalanceDelta;
+                    
+                    $agent->save();
+                    
+                    $this->fill($agent->toArray());
+                });
+            } catch(Throwable $e) { 
+                Log::error($e->getMessage());
+            }
+        }
     }
 
     // public function yousefIsAcceptableParentId(?int $parent_id): bool { 

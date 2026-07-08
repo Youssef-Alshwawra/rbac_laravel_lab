@@ -107,6 +107,18 @@ class Agent extends Model
         return ! in_array($$parent_id, $this->getDescendantIds(), true);
     }
 
+    // public function yousefIsAcceptableParentId(?int $parent_id): bool { 
+    //     if($parent_id === null) return true;
+    //     if($parent_id !== $this->id) return false;
+    //     if(!static::query()->where('id', $parent_id)->exists()) return false;
+    //     return ! in_array($parent_id, $this->getDescendantIds(), true);
+    // }
+    
+    // protected static function newFactory(): AgentFactory
+    // {
+    //     // return AgentFactory::new();
+    // }
+
     public function creditTransaction(): HasMany {
         return $this->hasMany(CreditTransaction::class);
     }
@@ -120,7 +132,7 @@ class Agent extends Model
     }
 
     public function deductCredit(float $amount = 0): bool { 
-        // if(!hasSufficientCredit($amount)) return false;
+        if(!hasSufficientCredit($amount)) return false;
         try { 
             return DB::transaction(function() use ($amount) { 
                 // this is the same of but slower cause of __callstatic() function take sometime to create eloquent builder and pass where function to it 
@@ -216,15 +228,54 @@ class Agent extends Model
         }
     }
 
-    // public function yousefIsAcceptableParentId(?int $parent_id): bool { 
-    //     if($parent_id === null) return true;
-    //     if($parent_id !== $this->id) return false;
-    //     if(!static::query()->where('id', $parent_id)->exists()) return false;
-    //     return ! in_array($parent_id, $this->getDescendantIds(), true);
-    // }
-    
-    // protected static function newFactory(): AgentFactory
-    // {
-    //     // return AgentFactory::new();
-    // }
+    public function getEffectiveCreditLimit(): ?string { 
+        // if($this->credit_limit > 0 || $this->credit_limit !== null) return (string) $this->credit_limit;     
+        // if(is_null($this->parent_agent_id)) return null;
+        // $parent_agent = static::query()->where('id', $this->parent_agent_id)->first(); 
+        // if($parent_agent->credit_limit > 0 || $parent_agent->credit_limit !== null) return (string) $this->credit_limit;
+
+        $credit_limit = $this->credit_limit;
+        $agent = $this;
+        while(true) { 
+            if($this->hasOwnCreditLimit($credit_limit)) return (string) $credit_limit;
+            if(!$this->hasParent($agent)) return null;
+            $agent = static::query()->where('id', $agent->parent_agent_id)->first();
+            $credit_limit = $agent->credit_limit;
+        } 
+    }
+
+    public function getEffectiveCreditUsed(): ?string { 
+        $credit_used = $this->credit_used;
+        $agent = $this;
+        while(true) { 
+            if($this->credit_used !== null) return (string) $credit_used;
+            if(!hasParent($agent)) return null;
+            $agent = static::query()->whereKey($agent->parent_agent_id)->first();
+            $credit_used = $agent->credit_used;
+        }
+    }
+
+    public function hasOwnCreditLimit($credit_limit): bool { 
+        // if( $credit_limit !== null ) return true; 
+        // return false;
+        return $credit_limit !== null;
+    }
+
+    public function hasParent(Agent $agent): bool { 
+        // if(is_null($agent->parent_agent_id)) return false;
+        // return true;
+        return is_null($agent->parent_agent_id) ? false : true;
+    }
+
+    public function getCreditUsed(): float { 
+        return $this->credit_used > 0 ? $this->credit_used : 0;
+    }
+
+    public function getCreditCeiling(): float { 
+        if($this->hasOwnCreditLimit($this->credit_limit)) return (float) $this->credit_limit + (float) $this->credit_used;
+        $credit_limit = $this->getEffectiveCreditLimit();
+        // $credit_used = $this->getEffectiveCreditUsed();
+        $credit_used = $this->getCreditUsed();
+        return $credit_limit + $credit_used; 
+    }
 }

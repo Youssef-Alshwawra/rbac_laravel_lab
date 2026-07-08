@@ -2,7 +2,7 @@
 
 namespace Modules\Access\Models;
 
-use Database\Factories\UserFactory;
+// use Database\Factories\UserFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -12,9 +12,42 @@ use Modules\Agents\Models\Agent;
 
 // use Modules\Access\Database\Factories\UserFactory;
 
+/**
+ * @property int $id
+ * @property string $name
+ * @property string $email
+ * @property \Illuminate\Support\Carbon|null $email_verified_at
+ * @property string $password
+ * @property string|null $remember_token
+ * @property \Illuminate\Support\Carbon|null $created_at
+ * @property \Illuminate\Support\Carbon|null $updated_at
+ * @property int|null $parent_id
+ * @property int|null $role_id
+ * @property-read Agent|null $agent
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, User> $children
+ * @property-read int|null $children_count
+ * @property-read \Illuminate\Notifications\DatabaseNotificationCollection<int, \Illuminate\Notifications\DatabaseNotification> $notifications
+ * @property-read int|null $notifications_count
+ * @property-read User|null $parent
+ * @property-read \Modules\Access\Models\Role|null $role
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|User newModelQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|User newQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|User query()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|User whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|User whereEmail($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|User whereEmailVerifiedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|User whereId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|User whereName($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|User whereParentId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|User wherePassword($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|User whereRememberToken($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|User whereRoleId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|User whereUpdatedAt($value)
+ * @mixin \Eloquent
+ */
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable;
+    use /** HasFactory, */ Notifiable;
 
     /**
      * The attributes that are mass assignable.
@@ -30,10 +63,10 @@ class User extends Authenticatable
         ];
     }
 
-    protected static function newFactory(): UserFactory
-    {
-        return Database\Factories\UserFactory::new();
-    }
+    // protected static function newFactory(): UserFactory
+    // {
+    //     return \Modules\Access\Database\Factories\UserFactory::new();
+    // }
 
     public function parent(): BelongsTo { 
         return $this->belongsTo(User::class, 'parent_id');

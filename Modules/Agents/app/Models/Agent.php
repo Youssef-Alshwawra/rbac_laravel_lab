@@ -177,7 +177,7 @@ class Agent extends Model
         if($current->credit_limit < $amount) return false;
         if(!$current->parent()->first()) return true;
         $current = $current->parent()->first();
-        $current->hasSufficientCredit($amount);
+        return $current->hasSufficientCredit($amount);
     }
 
     // public function hasSufficientCredit2(float $amount): bool { 

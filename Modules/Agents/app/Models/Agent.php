@@ -218,37 +218,38 @@ class Agent extends Model
         }
     }
 
-    public function addCredit(float $amount): bool { 
-        try { 
-            return DB::transaction(function() use ($amount) { 
-                $agent = static::query()->whereKey($this->id)->lockForUpdate()->first();
+    // public function addCredit(float $amount): bool { 
+    //     try { 
+    //         return DB::transaction(function() use ($amount) { 
+    //             $agent = static::query()->whereKey($this->id)->lockForUpdate()->first();
                 
-                // calculations : 
-                $agent->credit_limit = $agent->credit_limit + $amount;
-                $agent->credit_used = $agent->credit_used - $amount;
+    //             // calculations : 
+    //             $agent->credit_limit = $agent->credit_limit + $amount;
+    //             $agent->credit_used = $agent->credit_used - $amount;
 
-                // check for validation for credit used must be 0 or positive number
-                if($agent->credit_used < 0) return false;
+    //             // check for validation for credit used must be 0 or positive number
+    //             if($agent->credit_used < 0) return false;
 
-                $agent->save();
+    //             $agent->save();
 
-                $this->fill($agent->toArray());
+    //             $this->fill($agent->toArray());
 
-                // $this->credit_limit = $this->credit_limit + $amount;
-                // $this->credit_used = $this->credit_used - $amount;
+    //             // $this->credit_limit = $this->credit_limit + $amount;
+    //             // $this->credit_used = $this->credit_used - $amount;
                 
-                // if($this->credit_used < 0) return false;
+    //             // if($this->credit_used < 0) return false;
 
-                // $this->save();
+    //             // $this->save();
 
-                return true;
-            });
-        } catch (Throwable $e) { 
-            Log::error($e->getMessage());
-            return false;
-        }
-    }
+    //             return true;
+    //         });
+    //     } catch (Throwable $e) { 
+    //         Log::error($e->getMessage());
+    //         return false;
+    //     }
+    // }
 
+    
     public function applyCreditBalanceDelta(float $balanceDelta): void { 
         // if the balance delta is positive then the caculation will be an add credit else its gonna be deduct credit
         if($balanceDelta > 0) { 

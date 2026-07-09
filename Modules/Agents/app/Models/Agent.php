@@ -173,7 +173,6 @@ class Agent extends Model
      *  
     */
     public function hasSufficientCredit(float $amount = 0): bool {
-        // credit limit = 500, amount = 300 | 500 >= 300 = !true = false
         $current = $this;
         if($current->credit_limit < $amount) return false;
         if(!$current->parent()->first()) return true;
@@ -338,4 +337,6 @@ class Agent extends Model
         $credit_used = $this->getCreditUsed();
         return $credit_limit + $credit_used; 
     }
+
+    
 }

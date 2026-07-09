@@ -123,13 +123,73 @@ class Agent extends Model
         return $this->hasMany(CreditTransaction::class);
     }
 
-    public function hasSufficientCredit(float $amount = 0): bool { 
-        // $credit_limit = $this->credit_limit;
-        // if($credit_limit < $amount) return false;
-        // return true;
+    // public function hasSufficientCredit(float $amount = 0): bool { 
+    //     // $credit_limit = $this->credit_limit;
+    //     // if($credit_limit < $amount) return false;
+    //     // return true;
 
-        return $this->credit_limit < $amount ? false : true;
+    //     return $this->credit_limit < $amount ? false : true;
+    //     // return !($this->credit_limit < $amount);
+    // }
+
+    // public function hasSufficientCreditForAllLineage(float $amount = 0): bool { 
+        // $first_agent = $this;
+        // if(!$this->hasParent($first_agent)) { 
+        //     return $first_agent->credit_limit >= $amount ? true : false;
+        // } 
+        
+        // while(true) { 
+        //     $parent_id = $first_agent->parent_agent_id;
+        //     $parent_agent = static::query()->whereKey($parent_id)->first();
+            
+        //     if(!$this->hasParent($parent_agent)) { 
+        //         return $parent_agent->credit_limit >= $amount ? true : false;
+        //     } 
+        // }
+
+        // check the current agent credit limit + check the root parent skip all agents between them don't check (witch is not correct)
+        // if($this->hasSufficientCredit($amount)) {
+        //     if(!$this->parent()->first()) return true;
+            
+        //     $current = $this->parent()->first();
+        //     while($current) {
+        //         if(is_null($current->parent()->first())) { 
+        //             if($current->credit_limit >= $amount) return true;
+        //             return false;
+        //         }
+        //         $current = $current->parent()->first();
+        //     }
+        // } 
+
+        // return false;
+    // }
+
+    /**
+     * The logic must be like this:
+     * 1) check the current agent if has credit limit >= amount return true
+     * 2) check the agent if has parent
+     * 2.1) if true then we should check the parent if credit limit >= amount and return true
+     * 2.2) if false then  we return true because the current agent has a enough credit limit and hasn't parent
+     *  
+    */
+    public function hasSufficientCredit(float $amount = 0): bool {
+        // credit limit = 500, amount = 300 | 500 >= 300 = !true = false
+        $current = $this;
+        if($current->credit_limit < $amount) return false;
+        if(!$current->parent()->first()) return true;
+        $current = $current->parent()->first();
+        $current->hasSufficientCredit($amount);
     }
+
+    // public function hasSufficientCredit2(float $amount): bool { 
+    //     if($amount <= 0) return true;
+    //     if((float) ($this->credit_limit ?? 0) < $amount) return false;
+        
+    //     $parent = $this->parent()->first();
+        
+    //     if(!$parent) return true;
+    //     return $parent->hasSufficientCredit2($amount);
+    // }
 
     public function deductCredit(float $amount = 0): bool { 
         if(!hasSufficientCredit($amount)) return false;

@@ -242,6 +242,15 @@ class Agent extends Model
         return true;
     }
 
+    public function deductCreditV2(float $amount = 0): bool { 
+        if($amount <= 0) return false;
+        if(! $this->hasSufficientCredit($amount)) return false;
+        $parent = $this->parent()->first();
+        if($parent) $parent->deductCredit($amount);
+        $this->applyCreditBalanceDelta(-$amount);
+        return true;
+    }
+
     // public function addCredit(float $amount): bool {
     //     try {
     //         return DB::transaction(function() use ($amount) {
@@ -275,43 +284,61 @@ class Agent extends Model
 
 
 
-    public function applyCreditBalanceDelta(float $balanceDelta): void {
-        // if the balance delta is positive then the caculation will be an add credit else its gonna be deduct credit
-        if($balanceDelta > 0) {
-            try {
-                DB::transaction(function() use ($balanceDelta) {
-                    $agent = static::query()->whereKey($this->id)->lockForUpdate()->first();
+    // public function applyCreditBalanceDelta(float $balanceDelta): void {
+    //     // if the balance delta is positive then the caculation will be an add credit else its gonna be deduct credit
+    //     if($balanceDelta > 0) {
+    //         try {
+    //             DB::transaction(function() use ($balanceDelta) {
+    //                 $agent = static::query()->whereKey($this->id)->lockForUpdate()->first();
 
-                    $agent->credit_limit = $agent->credit_limit - $balanceDelta;
-                    $agent->credit_used = $agent->credit_used + $balanceDelta;
+    //                 $agent->credit_limit = $agent->credit_limit - $balanceDelta;
+    //                 $agent->credit_used = $agent->credit_used + $balanceDelta;
 
-                    $agent->save();
+    //                 $agent->save();
 
-                    $this->fill($agent->toArray());
-                });
-            } catch(Throwable $e) {
-                Log::error($e->getMessage());
-            }
-        }
-        else {
-            try {
-                DB::transaction(function() use ($balanceDelta) {
-                    $agent = static::query()->whereKey($this->id)->lockForUpdate()->first();
+    //                 $this->fill($agent->toArray());
+    //             });
+    //         } catch(Throwable $e) {
+    //             Log::error($e->getMessage());
+    //         }
+    //     }
+    //     else {
+    //         try {
+    //             DB::transaction(function() use ($balanceDelta) {
+    //                 $agent = static::query()->whereKey($this->id)->lockForUpdate()->first();
 
-                    $absBalanceDelta = abs($balanceDelta);
+    //                 $absBalanceDelta = abs($balanceDelta);
 
-                    $agent->credit_limit = $agent->credit_limit + $absBalanceDelta;
-                    $agent->credit_used = $agent->credit_used - $absBalanceDelta;
+    //                 $agent->credit_limit = $agent->credit_limit + $absBalanceDelta;
+    //                 $agent->credit_used = $agent->credit_used - $absBalanceDelta;
 
-                    $agent->save();
+    //                 $agent->save();
 
-                    $this->fill($agent->toArray());
-                });
-            } catch(Throwable $e) {
-                Log::error($e->getMessage());
-            }
+    //                 $this->fill($agent->toArray());
+    //             });
+    //         } catch(Throwable $e) {
+    //             Log::error($e->getMessage());
+    //         }
+    //     }
+    // }
+
+    private function applyCreditBalanceDelta(float $balanceDelta): void { 
+        $creditAvailable = (float) ($this->credit_limit ?? 0);
+        $creditUsed = (float) ($this->credit_used ?? 0);
+        $absBalanceDelta = abs($balanceDelta);
+
+        if($balanceDelta < 0) { 
+            $this->credit_limit = $creditAvailable - $absBalanceDelta;
+            $this->credit_used = $creditUsed + $absBalanceDelta;
+            $this->save();
+        } else { 
+            $this->credit_limit = $creditAvailable + $absBalanceDelta;
+            // $this->credit_used = $creditUsed - $absBalanceDelta;
+            $this->credit_used = max(0, $creditUsed - $absBalanceDelta);
+            $this->save();
         }
     }
+    
 
     public function getEffectiveCreditLimit(): ?string {
         // if($this->credit_limit > 0 || $this->credit_limit !== null) return (string) $this->credit_limit;

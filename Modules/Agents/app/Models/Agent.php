@@ -31,26 +31,26 @@ class Agent extends Model
      * The attributes that are mass assignable.
      */
     protected $fillable = ['name', 'email', 'credit_limit', 'credit_used', 'is_active', 'parent_agent_id'];
-    
+
     protected $cast = [
         'credit_limit' => 'decimal:2',
         'credit_used' => 'decimal:2',
         'is_active' => 'boolean'
     ];
 
-    public function parent(): BelongsTo { 
+    public function parent(): BelongsTo {
         return $this->belongsTo(Agent::class, 'parent_agent_id');
     }
 
-    public function children(): HasMany { 
+    public function children(): HasMany {
         return $this->hasMany(Agent::class, 'parent_agent_id');
     }
 
-    public function getDescendantIds(): array { 
+    public function getDescendantIds(): array {
         $descendantIds = [];
         $currentLevelIds = $this->children()->pluck('id')->all();
-        
-        while( !empty($currentLevelIds) ) { 
+
+        while( !empty($currentLevelIds) ) {
             $descendantIds = array_merge($descendantIds, $currentLevelIds);
             // $currentLevelIds = static::query()->whereIn('parent_agent_id', $currentLevelIds)->pluck('id')->all();
             // $currentLevelIds = Agent::query()->whereIn('parent_agent_id', $currentLevelIds)->pluck('id')->all();
@@ -61,12 +61,12 @@ class Agent extends Model
     }
 
     public function getAncetorIds(): array {
-        
+
         $ids = [];
         $parent_id = $this->parent_agent_id;
         $guard = 0;
 
-        while ($parent_id !== null && $guard < 256) { 
+        while ($parent_id !== null && $guard < 256) {
             $guard++;
             $ids[] = $parent_id;
             // $parent_id = Agent::query()->whereKey($parent_id)->value('parent_agent_id');
@@ -76,14 +76,14 @@ class Agent extends Model
         return $ids;
     }
 
-    // public function youesfGetAncetorIds(): array { 
+    // public function youesfGetAncetorIds(): array {
     //     $parent_id = $this->parent_agent_id;
     //     $guard = 0;
     //     $ids = [];
-         
+
     //     array_push($ids, $parent_id);
     //     while(!is_null($parent_id) || $guard < 256) {
-    //         $guard++; 
+    //         $guard++;
     //         // $parent_id = static::query()->where('id', $parent_id)->pluck('id')->first();
     //         // $parent_id = Agent::query()->whereKey($parent_id)->value('parent_agent_id');
     //         $parent_id = self::query()->where('id', $parent_id)->value('parent_agent_id');
@@ -93,27 +93,27 @@ class Agent extends Model
     //     return array_values(array_unique($ids));
     // }
 
-    public function getSelfAndDescendantIds(): array { 
+    public function getSelfAndDescendantIds(): array {
         // $self_id = $this->id;
         // $descendantIds = Agent::query()->whereIn('parent_agent_id', $self_id)->pluck('id')->all();
         // return ['self id' => $self_id, $descendantIds];
         return [$this->id, $this->getDescendantIds()];
     }
 
-    public function isAcceptableParentId(?int $parent_id): bool { 
+    public function isAcceptableParentId(?int $parent_id): bool {
         if($parent_id === null) return true;
         if($parent_id !== $this->id) return false;
         if(!static::query()->whereKey($parent_id)->exists()) return false;
         return ! in_array($$parent_id, $this->getDescendantIds(), true);
     }
 
-    // public function yousefIsAcceptableParentId(?int $parent_id): bool { 
+    // public function yousefIsAcceptableParentId(?int $parent_id): bool {
     //     if($parent_id === null) return true;
     //     if($parent_id !== $this->id) return false;
     //     if(!static::query()->where('id', $parent_id)->exists()) return false;
     //     return ! in_array($parent_id, $this->getDescendantIds(), true);
     // }
-    
+
     // protected static function newFactory(): AgentFactory
     // {
     //     // return AgentFactory::new();
@@ -123,7 +123,7 @@ class Agent extends Model
         return $this->hasMany(CreditTransaction::class);
     }
 
-    // public function hasSufficientCredit(float $amount = 0): bool { 
+    // public function hasSufficientCredit(float $amount = 0): bool {
     //     // $credit_limit = $this->credit_limit;
     //     // if($credit_limit < $amount) return false;
     //     // return true;
@@ -132,34 +132,34 @@ class Agent extends Model
     //     // return !($this->credit_limit < $amount);
     // }
 
-    // public function hasSufficientCreditForAllLineage(float $amount = 0): bool { 
+    // public function hasSufficientCreditForAllLineage(float $amount = 0): bool {
         // $first_agent = $this;
-        // if(!$this->hasParent($first_agent)) { 
+        // if(!$this->hasParent($first_agent)) {
         //     return $first_agent->credit_limit >= $amount ? true : false;
-        // } 
-        
-        // while(true) { 
+        // }
+
+        // while(true) {
         //     $parent_id = $first_agent->parent_agent_id;
         //     $parent_agent = static::query()->whereKey($parent_id)->first();
-            
-        //     if(!$this->hasParent($parent_agent)) { 
+
+        //     if(!$this->hasParent($parent_agent)) {
         //         return $parent_agent->credit_limit >= $amount ? true : false;
-        //     } 
+        //     }
         // }
 
         // check the current agent credit limit + check the root parent skip all agents between them don't check (witch is not correct)
         // if($this->hasSufficientCredit($amount)) {
         //     if(!$this->parent()->first()) return true;
-            
+
         //     $current = $this->parent()->first();
         //     while($current) {
-        //         if(is_null($current->parent()->first())) { 
+        //         if(is_null($current->parent()->first())) {
         //             if($current->credit_limit >= $amount) return true;
         //             return false;
         //         }
         //         $current = $current->parent()->first();
         //     }
-        // } 
+        // }
 
         // return false;
     // }
@@ -170,7 +170,7 @@ class Agent extends Model
      * 2) check the agent if has parent
      * 2.1) if true then we should check the parent if credit limit >= amount and return true
      * 2.2) if false then  we return true because the current agent has a enough credit limit and hasn't parent
-     *  
+     *
     */
     public function hasSufficientCredit(float $amount = 0): bool {
         $current = $this;
@@ -180,50 +180,74 @@ class Agent extends Model
         return $current->hasSufficientCredit($amount);
     }
 
-    // public function hasSufficientCredit2(float $amount): bool { 
+    // public function hasSufficientCredit2(float $amount): bool {
     //     if($amount <= 0) return true;
     //     if((float) ($this->credit_limit ?? 0) < $amount) return false;
-        
+
     //     $parent = $this->parent()->first();
-        
+
     //     if(!$parent) return true;
     //     return $parent->hasSufficientCredit2($amount);
     // }
 
-    public function deductCredit(float $amount = 0): bool { 
-        if(!hasSufficientCredit($amount)) return false;
-        try { 
-            return DB::transaction(function() use ($amount) { 
-                // this is the same of but slower cause of __callstatic() function take sometime to create eloquent builder and pass where function to it 
-                // $agent = static::where('id', $this->id)->lockForUpdate()->first();
-                $agent = static::query()->where('id', $this->id)->lockForUpdate()->first();
-                
-                $agent->credit_limit = $agent->credit_limit - $amount;
-                $agent->credit_used = $agent->credit_used + $amount;
-                
-                // $this->credit_limit = $this->credit_limit - $amount;
-                // $this->credit_used = $this->credit_used + $amount;
+    // public function deductCredit(float $amount = 0): bool {
+    //     if(!hasSufficientCredit($amount)) return false;
+    //     try {
+    //         return DB::transaction(function() use ($amount) {
+    //             // this is the same of but slower cause of __callstatic() function take sometime to create eloquent builder and pass where function to it
+    //             // $agent = static::where('id', $this->id)->lockForUpdate()->first();
+    //             $agent = static::query()->where('id', $this->id)->lockForUpdate()->first();
 
-                // save it in database
-                $agent->save();
+    //             $agent->credit_limit = $agent->credit_limit - $amount;
+    //             $agent->credit_used = $agent->credit_used + $amount;
 
-                // update the current object with new credits data
-                $this->fill($agent->toArray());
+    //             // $this->credit_limit = $this->credit_limit - $amount;
+    //             // $this->credit_used = $this->credit_used + $amount;
 
-                return true;
-            });
-        } catch(Throwable $e) { 
-            Log::error($e->getMessage());
-            return false;
-        }
+    //             // save it in database
+    //             $agent->save();
+
+    //             // update the current object with new credits data
+    //             $this->fill($agent->toArray());
+
+    //             return true;
+    //         });
+    //     } catch(Throwable $e) {
+    //         Log::error($e->getMessage());
+    //         return false;
+    //     }
+    // }
+
+    // public function deductCredit(float $amount = 0): bool {
+    //     $current = $this;
+    //     if(!$this->hasSufficientCredit($amount)) return false;
+
+    //     while($current->parent()->first()) {
+    //         // DB::transaction(function () use ($amount) {
+    //             $current->credit_limit = (float) $current->credit_limit - (float) $amount;
+    //             $current->credit_used = (float) $current->credit_used + (float) $amount;
+    //             $current = $current->parent()->first();
+    //         // });
+    //     }
+
+    //     return true;
+    // }
+
+    public function deductCredit(float $amount = 0): bool {
+        if($amount <= 0) return false;
+        if(! $this->hasSufficientCredit($amount)) return false;
+        $parent = $this->parent()->first();
+        if($parent) $parent->deductCredit($amount);
+        $this->applyCreditBalanceDelta(-$amount);
+        return true;
     }
 
-    // public function addCredit(float $amount): bool { 
-    //     try { 
-    //         return DB::transaction(function() use ($amount) { 
+    // public function addCredit(float $amount): bool {
+    //     try {
+    //         return DB::transaction(function() use ($amount) {
     //             $agent = static::query()->whereKey($this->id)->lockForUpdate()->first();
-                
-    //             // calculations : 
+
+    //             // calculations :
     //             $agent->credit_limit = $agent->credit_limit + $amount;
     //             $agent->credit_used = $agent->credit_used - $amount;
 
@@ -236,78 +260,79 @@ class Agent extends Model
 
     //             // $this->credit_limit = $this->credit_limit + $amount;
     //             // $this->credit_used = $this->credit_used - $amount;
-                
+
     //             // if($this->credit_used < 0) return false;
 
     //             // $this->save();
 
     //             return true;
     //         });
-    //     } catch (Throwable $e) { 
+    //     } catch (Throwable $e) {
     //         Log::error($e->getMessage());
     //         return false;
     //     }
     // }
 
-    
-    public function applyCreditBalanceDelta(float $balanceDelta): void { 
+
+
+    public function applyCreditBalanceDelta(float $balanceDelta): void {
         // if the balance delta is positive then the caculation will be an add credit else its gonna be deduct credit
-        if($balanceDelta > 0) { 
+        if($balanceDelta > 0) {
             try {
                 DB::transaction(function() use ($balanceDelta) {
                     $agent = static::query()->whereKey($this->id)->lockForUpdate()->first();
-                    
+
                     $agent->credit_limit = $agent->credit_limit - $balanceDelta;
                     $agent->credit_used = $agent->credit_used + $balanceDelta;
-                    
+
                     $agent->save();
-                    
+
                     $this->fill($agent->toArray());
                 });
-            } catch(Throwable $e) { 
+            } catch(Throwable $e) {
                 Log::error($e->getMessage());
             }
-        } 
-        else { 
+        }
+        else {
             try {
                 DB::transaction(function() use ($balanceDelta) {
                     $agent = static::query()->whereKey($this->id)->lockForUpdate()->first();
-                    
+
                     $absBalanceDelta = abs($balanceDelta);
 
                     $agent->credit_limit = $agent->credit_limit + $absBalanceDelta;
                     $agent->credit_used = $agent->credit_used - $absBalanceDelta;
-                    
+
                     $agent->save();
-                    
+
                     $this->fill($agent->toArray());
                 });
-            } catch(Throwable $e) { 
+            } catch(Throwable $e) {
                 Log::error($e->getMessage());
             }
         }
     }
 
-    public function getEffectiveCreditLimit(): ?string { 
-        // if($this->credit_limit > 0 || $this->credit_limit !== null) return (string) $this->credit_limit;     
+    public function getEffectiveCreditLimit(): ?string {
+        // if($this->credit_limit > 0 || $this->credit_limit !== null) return (string) $this->credit_limit;
         // if(is_null($this->parent_agent_id)) return null;
-        // $parent_agent = static::query()->where('id', $this->parent_agent_id)->first(); 
+        // $parent_agent = static::query()->where('id', $this->parent_agent_id)->first();
         // if($parent_agent->credit_limit > 0 || $parent_agent->credit_limit !== null) return (string) $this->credit_limit;
 
         $credit_limit = $this->credit_limit;
         $agent = $this;
-        while(true) { 
+        while(true) {
             if($this->hasOwnCreditLimit($credit_limit)) return (string) $credit_limit;
             if(!$this->hasParent($agent)) return null;
             $agent = static::query()->where('id', $agent->parent_agent_id)->first();
             $credit_limit = $agent->credit_limit;
-        } 
+        }
     }
 
-    public function getEffectiveCreditUsed(): ?string { 
+    public function getEffectiveCreditUsed(): ?string {
         $credit_used = $this->credit_used;
         $agent = $this;
-        while(true) { 
+        while(true) {
             if($this->credit_used !== null) return (string) $credit_used;
             if(!hasParent($agent)) return null;
             $agent = static::query()->whereKey($agent->parent_agent_id)->first();
@@ -315,29 +340,29 @@ class Agent extends Model
         }
     }
 
-    public function hasOwnCreditLimit($credit_limit): bool { 
-        // if( $credit_limit !== null ) return true; 
+    public function hasOwnCreditLimit($credit_limit): bool {
+        // if( $credit_limit !== null ) return true;
         // return false;
         return $credit_limit !== null;
     }
 
-    public function hasParent(Agent $agent): bool { 
+    public function hasParent(Agent $agent): bool {
         // if(is_null($agent->parent_agent_id)) return false;
         // return true;
         return is_null($agent->parent_agent_id) ? false : true;
     }
 
-    public function getCreditUsed(): float { 
+    public function getCreditUsed(): float {
         return $this->credit_used > 0 ? $this->credit_used : 0;
     }
 
-    public function getCreditCeiling(): float { 
+    public function getCreditCeiling(): float {
         if($this->hasOwnCreditLimit($this->credit_limit)) return (float) $this->credit_limit + (float) $this->credit_used;
         $credit_limit = $this->getEffectiveCreditLimit();
         // $credit_used = $this->getEffectiveCreditUsed();
         $credit_used = $this->getCreditUsed();
-        return $credit_limit + $credit_used; 
+        return $credit_limit + $credit_used;
     }
 
-    
+
 }

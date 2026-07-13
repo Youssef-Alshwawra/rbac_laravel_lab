@@ -251,6 +251,22 @@ class Agent extends Model
         return true;
     }
 
+    public function addCredit(float $amount, bool $propagateToParent = false): bool { 
+        if($amount <= 0) return true;
+        
+        if($propagateToParent) { 
+            $parent = $this->parent()->first();
+            
+            if($parent && ! $parent->addCredit($amount, true)) { 
+                return false;
+            }
+        }
+        
+        $this->applyCreditBalanceDelta($amount);
+        
+        return true;
+    }
+
     // public function addCredit(float $amount): bool {
     //     try {
     //         return DB::transaction(function() use ($amount) {

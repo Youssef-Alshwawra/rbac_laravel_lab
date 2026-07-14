@@ -130,7 +130,4 @@ class CreditService
             Log::error($e->getMessage());
         }
     }
-    // public function allocation(int $agentId, float $amount, string $description): void { 
-
-    // }
 }
